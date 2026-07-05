@@ -4,7 +4,7 @@
 
 Local-first multilingual dictation powered by **Gemma 4 E2B**. Speak in any language, get polished text. Audio never leaves your device.
 
-Built for the [Gemma 4 Hackathon](https://www.kaggle.com/competitions/gemma-4-hackathon). Public repo: [github.com/Arindam200/WisprGemma](https://github.com/Arindam200/WisprGemma)
+
 
 This monorepo contains two deliverables:
 
