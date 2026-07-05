@@ -35,9 +35,39 @@ worker.onerror = (e) => {
   els.progressText.textContent = `⚠️ Worker failed: ${e.message ?? "unknown error"}${where}`;
 };
 let streamingToTab = false;
+// True when the current dictation was started with the page hotkey. Those
+// always stream into the page — that's the point of the gesture — regardless
+// of the auto-insert checkbox, which governs panel-button recordings.
+let pttSession = false;
 // Tab the dictation targets, captured when recording starts so streamed
 // tokens keep landing in the right tab even if the user switches tabs.
 let targetTabId = null;
+
+// Statically declared content scripts only appear on page load, so tabs that
+// were open before the extension was installed/reloaded don't have one — the
+// hotkey and insert silently do nothing there. Ping the tab and inject
+// content.js on demand if nobody answers. Returns false on pages Chrome
+// won't let us touch (chrome://, web store).
+async function ensureContentScript(tabId) {
+  if (tabId == null) return false;
+  try {
+    const res = await chrome.tabs.sendMessage(tabId, { type: "wisprgemma-ping" });
+    if (res?.ok) return true;
+  } catch {}
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Cover the active tab as soon as the panel opens, and every tab the user
+// switches to while it stays open, so the hotkey works without a page reload.
+chrome.tabs
+  .query({ active: true, currentWindow: true })
+  .then(([tab]) => ensureContentScript(tab?.id));
+chrome.tabs.onActivated.addListener(({ tabId }) => ensureContentScript(tabId));
 
 async function sendToTab(msg) {
   try {
@@ -54,6 +84,7 @@ async function sendToTab(msg) {
 // of one chrome.tabs.sendMessage round-trip per token.
 let tokenBuf = "";
 let flushScheduled = false;
+let streamFailed = false;
 
 function queueToken(text) {
   tokenBuf += text;
@@ -63,12 +94,22 @@ function queueToken(text) {
   }
 }
 
-function flushTokens() {
+async function flushTokens() {
   flushScheduled = false;
   if (!tokenBuf) return;
   const text = tokenBuf;
   tokenBuf = "";
-  sendToTab({ type: "wisprgemma-token", text });
+  const res = await sendToTab({ type: "wisprgemma-token", text });
+  // Surface delivery failures instead of claiming success later: null means
+  // the tab is unreachable (stale content script, chrome:// page), ok:false
+  // means no text field has been focused in it.
+  if (!res?.ok) {
+    streamFailed = true;
+    els.insertStatus.textContent =
+      res === null
+        ? "Couldn't reach the page — reload the tab, then try again."
+        : "Click into a text field on the page, then use Insert.";
+  }
 }
 
 // ---------- dictation history (chrome.storage.local, device-only) ----------
@@ -204,7 +245,8 @@ worker.onmessage = ({ data }) => {
         tFirstToken = performance.now();
         els.output.textContent = "";
         tokenBuf = "";
-        streamingToTab = els.autoInsert.checked;
+        streamFailed = false;
+        streamingToTab = pttSession || els.autoInsert.checked;
       }
       els.output.textContent += data.text;
       if (streamingToTab) queueToken(data.text);
@@ -226,16 +268,18 @@ worker.onmessage = ({ data }) => {
       setBusy(false);
       if (streamingToTab) {
         flushTokens(); // deliver any tokens still buffered
-        els.insertStatus.textContent = "✓ Streamed into the page";
+        if (!streamFailed) els.insertStatus.textContent = "✓ Streamed into the page";
         streamingToTab = false;
       } else if (els.autoInsert.checked) {
         insertIntoPage();
       }
+      pttSession = false;
       break;
     }
     case "error":
       tokenBuf = "";
       streamingToTab = false;
+      pttSession = false;
       els.output.textContent = `⚠️ ${data.error}`;
       els.progressText.textContent = `⚠️ ${data.error}`;
       setBusy(false);
@@ -250,6 +294,11 @@ async function insertIntoPage() {
   if (!text) return;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!(await ensureContentScript(tab?.id))) {
+      els.insertStatus.textContent =
+        "Can't insert on this page (e.g. chrome:// or web store). Use Copy.";
+      return;
+    }
     const res = await chrome.tabs.sendMessage(tab.id, {
       type: "wisprgemma-insert",
       text,
@@ -353,21 +402,36 @@ async function processClip(blob) {
   ]);
 }
 
-els.recordBtn.addEventListener("pointerdown", startRecording);
+// Note: don't pass startRecording directly as the handler — the PointerEvent
+// would land in its tabId parameter and get used as a (bogus) tab id.
+els.recordBtn.addEventListener("pointerdown", () => {
+  pttSession = false;
+  startRecording();
+});
 els.recordBtn.addEventListener("pointerup", stopRecording);
 els.recordBtn.addEventListener("pointerleave", stopRecording);
 
 // ---------- push-to-talk from the page (hold Alt in a text field) ----------
 
-chrome.runtime.onMessage.addListener((msg, sender) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "wisprgemma-ptt-start") {
-    if (els.app.hidden) return; // model not ready yet
+    if (els.app.hidden) {
+      sendResponse({ ok: false, reason: "loading" }); // model not ready yet
+      return;
+    }
+    if (busy || recording) {
+      sendResponse({ ok: false, reason: "busy" });
+      return;
+    }
+    pttSession = true;
     targetTabId = sender.tab?.id ?? null;
     sendToTab({ type: "wisprgemma-recording", on: true });
     startRecording(targetTabId);
+    sendResponse({ ok: true });
   } else if (msg.type === "wisprgemma-ptt-stop") {
     sendToTab({ type: "wisprgemma-recording", on: false });
     stopRecording();
+    sendResponse({ ok: true });
   }
 });
 

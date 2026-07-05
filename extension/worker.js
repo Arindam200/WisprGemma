@@ -25,6 +25,38 @@ env.backends.onnx.wasm.wasmPaths = {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
+// The Cache API only accepts http(s) requests, so caching files that ship
+// inside the extension (chrome-extension:// URLs, e.g. the ORT wasm) throws
+// "Request scheme 'chrome-extension' is unsupported". Wrap the default cache
+// to skip those — they load from disk anyway — and to warn loudly if caching
+// the multi-GB weights fails, since a silent put failure means the model
+// re-downloads on every load.
+const CACHE_KEY = "transformers-cache";
+env.useCustomCache = true;
+env.customCache = {
+  async match(request) {
+    try {
+      const cache = await caches.open(CACHE_KEY);
+      return await cache.match(request);
+    } catch {
+      return undefined;
+    }
+  },
+  async put(request, response) {
+    const url = typeof request === "string" ? request : request.url;
+    if (!/^https?:/.test(url)) return;
+    try {
+      const cache = await caches.open(CACHE_KEY);
+      await cache.put(request, response);
+    } catch (err) {
+      console.warn(
+        `Could not cache ${url} — it will be re-downloaded next time:`,
+        err
+      );
+    }
+  },
+};
+
 const MODEL_ID = "onnx-community/gemma-4-E2B-it-ONNX";
 // Optional local weight server (see download-model.sh) — much faster than
 // pulling 3.4 GB from the Hub, and shareable between web app and extension.

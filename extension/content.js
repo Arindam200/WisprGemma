@@ -2,6 +2,15 @@
 // (hold Alt/Option — a modifier key never types characters, so it can't
 // interfere with the text box the way Space would), and inserts dictated
 // text, either streamed token-by-token or in one shot.
+//
+// The whole file is wrapped in a guarded IIFE: the panel also injects it on
+// demand (chrome.scripting) into tabs that were open before the extension
+// loaded, and a second copy in the same isolated world must not register
+// duplicate listeners (which would double-insert text).
+(() => {
+if (globalThis.__wisprgemmaInjected) return;
+globalThis.__wisprgemmaInjected = true;
+
 let lastEditable = null;
 let pttActive = false;
 
@@ -48,12 +57,32 @@ function insertText(text) {
 
 // ---------- push-to-talk: hold Alt/Option while in a text field ----------
 
-function sendPtt(type) {
+async function sendPtt(type) {
   try {
-    chrome.runtime.sendMessage({ type });
+    return await chrome.runtime.sendMessage({ type });
   } catch {
-    /* extension reloaded — ignore */
+    return null; // no listener (side panel closed) or extension reloaded
   }
+}
+
+// The hotkey can fail for reasons the user can't see (panel closed, model
+// still loading, stale content script). Show a small on-page hint instead
+// of silently doing nothing.
+let hintEl = null;
+let hintTimer = null;
+function showHint(text) {
+  if (!hintEl) {
+    hintEl = document.createElement("div");
+    hintEl.style.cssText =
+      "position:fixed;bottom:16px;right:16px;z-index:2147483647;" +
+      "background:#111;color:#fff;padding:10px 14px;border-radius:8px;" +
+      "font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.3);" +
+      "max-width:320px;pointer-events:none";
+  }
+  hintEl.textContent = text;
+  (document.body ?? document.documentElement).appendChild(hintEl);
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => hintEl.remove(), 4000);
 }
 
 function stopPtt() {
@@ -68,8 +97,24 @@ document.addEventListener(
   (e) => {
     if (e.key === "Alt" && !e.repeat && !pttActive && targetEl()) {
       e.preventDefault(); // keep Alt from focusing the browser menu
+      if (!chrome.runtime?.id) {
+        // Extension was reloaded/updated; this copy of the script is orphaned.
+        showHint("WisprGemma was updated — reload this page to use the hotkey.");
+        return;
+      }
       pttActive = true;
-      sendPtt("wisprgemma-ptt-start");
+      sendPtt("wisprgemma-ptt-start").then((res) => {
+        if (!res?.ok) {
+          pttActive = false;
+          showHint(
+            res?.reason === "loading"
+              ? "WisprGemma: the model is still loading — check the side panel."
+              : res?.reason === "busy"
+                ? "WisprGemma: still processing the previous dictation."
+                : "WisprGemma: open the side panel (toolbar icon), then hold ⌥ again."
+          );
+        }
+      });
     }
   },
   true
@@ -92,6 +137,9 @@ window.addEventListener("blur", stopPtt);
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   switch (msg.type) {
+    case "wisprgemma-ping": // liveness check before on-demand injection
+      sendResponse({ ok: true });
+      break;
     case "wisprgemma-insert": // full-text insert (Insert button / non-streamed)
       sendResponse(insertText(msg.text));
       break;
@@ -133,3 +181,4 @@ if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
     }
   });
 }
+})();
