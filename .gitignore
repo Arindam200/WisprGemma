@@ -1,0 +1,5 @@
+.DS_Store
+.gstack/
+web/models/
+node_modules/
+KAGGLE_WRITEUP.md

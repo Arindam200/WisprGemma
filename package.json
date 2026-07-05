@@ -1,0 +1,9 @@
+{
+  "name": "wisprgemma",
+  "private": true,
+  "description": "Local-first dictation with Gemma 4 E2B in the browser and Chrome extension.",
+  "scripts": {
+    "serve:web": "npx serve web -l 3000",
+    "download-model": "bash web/download-model.sh"
+  }
+}

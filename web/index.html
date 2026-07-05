@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WisprGemma: on-device dictation with Gemma 4</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <span class="kicker">On-device dictation</span>
+      <div class="brand">
+        <span class="brand-mark">🎙️</span>
+        <h1>WisprGemma</h1>
+      </div>
+      <p class="tagline">Voice → polished text. 100% on-device with Gemma&nbsp;4&nbsp;E2B.</p>
+      <span id="privacy-badge" class="badge">🔒 Audio never leaves this device</span>
+    </header>
+
+    <section id="loader">
+      <button id="load-btn">Load model (~3.5 GB, one-time download)</button>
+      <div id="progress" hidden>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+        <p id="progress-text">Preparing…</p>
+      </div>
+      <p id="webgpu-warning" class="error" hidden>
+        This browser doesn't support WebGPU. Use Chrome/Edge 121+.
+      </p>
+    </section>
+
+    <section id="app" hidden>
+      <div class="controls">
+        <label for="mode">Output style</label>
+        <select id="mode">
+          <option value="clean" selected>Clean dictation (remove fillers, fix punctuation)</option>
+          <option value="verbatim">Verbatim transcript</option>
+          <option value="email">Polished email tone</option>
+          <option value="english">Any language → polished English</option>
+        </select>
+      </div>
+
+      <button id="record-btn" class="record">🎙️ Hold to talk <kbd>Space</kbd></button>
+      <p id="record-hint" class="hint">Hold the button (or Space) while speaking, release to transcribe. Max 30s per utterance.</p>
+
+      <div id="output" class="output" contenteditable="true" spellcheck="false"
+           data-placeholder="Your polished text appears here…"></div>
+
+      <div id="stats" class="stats" hidden>
+        <span>⏱️ first token: <b id="stat-first">–</b></span>
+        <span>total: <b id="stat-total">–</b></span>
+        <span>audio: <b id="stat-audio">–</b></span>
+        <span class="local-tag">local · $0 · offline-capable</span>
+      </div>
+
+      <a class="dash-link" href="dashboard.html">📊 View your stats dashboard →</a>
+    </section>
+
+    <footer>
+      <a class="powered-by" href="https://ai.google.dev/gemma" target="_blank" rel="noopener noreferrer">
+        <img src="assets/gemma-color.png" alt="" width="18" height="18" />
+        <span>Powered by Gemma 4</span>
+      </a>
+      <p>Gemma 4 E2B on WebGPU via Transformers.js. Works offline after the one-time model download.</p>
+    </footer>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

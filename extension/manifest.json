@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "WisprGemma",
+  "version": "0.1.0",
+  "description": "Voice to polished text in any input field. Gemma 4 E2B on WebGPU, fully local. Audio never leaves your device.",
+  "permissions": ["sidePanel", "storage", "activeTab"],
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "Open WisprGemma" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

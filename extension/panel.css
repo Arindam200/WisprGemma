@@ -1,0 +1,30 @@
+body { padding: 1rem 0.75rem; }
+.panel-main { max-width: 100%; gap: 0.9rem; }
+.panel-footer { max-width: none; margin: 0; text-align: left; align-items: flex-start; }
+h1 { font-size: 1.3rem; display: inline; margin-right: 0.5rem; }
+header { text-align: left; }
+.badge { margin-top: 0; }
+.record { padding: 0.9rem; font-size: 0.95rem; }
+.output { min-height: 6rem; font-size: 0.9rem; }
+.actions { display: flex; gap: 0.5rem; }
+.actions button { flex: 1; font-size: 0.85rem; padding: 0.5rem; }
+.toggle { display: flex; gap: 0.45rem; align-items: center; color: var(--muted); font-size: 0.8rem; }
+.stats { font-size: 0.75rem; }
+#insert-status { min-height: 1em; text-align: left; }
+
+.history { border-top: 1px solid var(--rule); padding-top: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.history-head { display: flex; justify-content: space-between; align-items: center; }
+.history-head button { font-size: 0.72rem; padding: 0.25rem 0.6rem; }
+#history-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; max-height: 300px; overflow-y: auto; }
+#history-list li {
+  display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.6rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--background);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+}
+#history-list time { color: var(--muted-foreground); font-size: 0.7rem; grid-column: 1; }
+#history-list p { grid-column: 1; margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+#history-list button { grid-column: 2; grid-row: 1 / 3; align-self: center; font-size: 0.72rem; padding: 0.25rem 0.55rem; }
+

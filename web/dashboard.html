@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WisprGemma: your dictation stats</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <main class="wide">
+    <header>
+      <h1>Your dictation stats</h1>
+      <p class="tagline">Computed and stored on this device only.</p>
+      <span class="badge">🔒 Nothing leaves your machine</span>
+    </header>
+
+    <nav class="topnav">
+      <a href="index.html">← Back to dictation</a>
+      <button id="clear-btn" class="danger">Clear all data</button>
+    </nav>
+
+    <section id="empty" hidden>
+      <p class="hint">No dictations yet. Go dictate something first!</p>
+    </section>
+
+    <section id="content" hidden>
+      <div class="tiles">
+        <div class="tile"><span class="tile-value" id="t-words">–</span><span class="tile-label">words dictated</span></div>
+        <div class="tile"><span class="tile-value" id="t-utterances">–</span><span class="tile-label">dictations</span></div>
+        <div class="tile"><span class="tile-value" id="t-wpm">–</span><span class="tile-label">avg speaking WPM</span></div>
+        <div class="tile"><span class="tile-value" id="t-saved">–</span><span class="tile-label">est. time saved vs typing*</span></div>
+        <div class="tile"><span class="tile-value" id="t-first">–</span><span class="tile-label">avg time to first token</span></div>
+        <div class="tile"><span class="tile-value" id="t-streak">–</span><span class="tile-label">day streak</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Words dictated, last 14 days</h2>
+          <button id="table-toggle" aria-pressed="false">Table view</button>
+        </div>
+        <div id="chart" role="img" aria-label="Bar chart of words dictated per day over the last 14 days"></div>
+        <div id="tooltip" class="tooltip" hidden></div>
+        <table id="data-table" hidden>
+          <thead><tr><th scope="col">Day</th><th scope="col">Words</th><th scope="col">Dictations</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Output styles used</h2>
+        <ul id="modes" class="mode-list"></ul>
+      </div>
+
+
+      <p class="hint">*assumes 40 WPM typing; saved = typing time − speaking time − model latency.</p>
+    </section>
+
+    <section id="recent-section" hidden>
+      <div class="panel">
+        <h2>Recent dictations</h2>
+        <ul id="recent" class="recent-list"></ul>
+      </div>
+    </section>
+
+    <footer>
+      <a class="powered-by" href="https://ai.google.dev/gemma" target="_blank" rel="noopener noreferrer">
+        <img src="assets/gemma-color.png" alt="" width="18" height="18" />
+        <span>Powered by Gemma 4</span>
+      </a>
+      <p>Gemma 4 E2B on WebGPU via Transformers.js. Works offline after the one-time model download.</p>
+    </footer>
+  </main>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>
