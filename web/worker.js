@@ -1,11 +1,29 @@
 // Model worker: loads Gemma 4 E2B (ONNX, q4f16) on WebGPU and runs
 // audio -> polished-text generation in a single pass.
-import {
-  env,
-  AutoProcessor,
-  Gemma4ForConditionalGeneration,
-  TextStreamer,
-} from "./vendor/transformers.min.js";
+
+// MV3 CSP shim: Transformers.js loads ONNX Runtime's WASM factory through a
+// blob: URL unless it detects a Chrome extension (chrome.runtime.id), and
+// extension pages forbid blob: scripts. Dedicated workers don't get the
+// chrome API, so fake just enough of it BEFORE the library is imported.
+if (typeof chrome === "undefined" || !chrome.runtime?.id) {
+  globalThis.chrome = { runtime: { id: "wisprgemma-csp-shim" } };
+}
+
+const { env, AutoProcessor, Gemma4ForConditionalGeneration, TextStreamer } =
+  await import("./vendor/transformers.min.js");
+
+// Point ONNX Runtime at the WASM files shipped with the extension instead of
+// the jsdelivr CDN, which extension CSP would also block. Together with the
+// shim above, the .mjs is imported directly from chrome-extension:// (allowed
+// by 'self') instead of a blob: URL.
+env.backends.onnx.wasm.wasmPaths = {
+  mjs: new URL("./vendor/ort-wasm-simd-threaded.asyncify.mjs", import.meta.url).href,
+  wasm: new URL("./vendor/ort-wasm-simd-threaded.asyncify.wasm", import.meta.url).href,
+};
+// Blob-booted pthread workers are also CSP-blocked; stay single-threaded.
+// The heavy lifting runs on WebGPU anyway, so this costs little.
+env.backends.onnx.wasm.numThreads = 1;
+env.backends.onnx.wasm.proxy = false;
 
 const MODEL_ID = "onnx-community/gemma-4-E2B-it-ONNX";
 // Optional local weight server (see download-model.sh) — much faster than
@@ -60,6 +78,12 @@ async function load() {
         "Processor failed to load. The Transformers.js version may not support Gemma 4. Hard-refresh (Cmd+Shift+R) to clear the cached library."
       );
     }
+    // Covers the cached-weights path, where no download progress events fire
+    // but session creation + GPU upload still takes a while.
+    postMessage({
+      type: "status",
+      text: "Loading model onto the GPU… this can take a few minutes.",
+    });
     model = await Gemma4ForConditionalGeneration.from_pretrained(MODEL_ID, {
       dtype: "q4f16",
       device: "webgpu",

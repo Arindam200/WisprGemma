@@ -157,6 +157,12 @@ button:focus-visible, select:focus-visible, .output:focus-visible, a:focus-visib
 #progress { width: 100%; }
 #progress-bar { height: 4px; border-radius: 2px; background: var(--muted); overflow: hidden; }
 #progress-fill { height: 100%; width: 0; background: var(--primary); transition: width 0.25s ease; }
+/* Pulses while the model is being built on the GPU (no measurable progress). */
+#progress-fill.indeterminate { animation: progress-pulse 1.6s ease-in-out infinite; }
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
 #progress-text {
   color: var(--muted-foreground); font-size: 0.84rem; margin-top: 0.65rem;
   text-align: center; font-variant-numeric: tabular-nums;

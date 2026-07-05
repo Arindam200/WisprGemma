@@ -1,0 +1,172 @@
+/* Shared editorial chrome — Modern Editorial (forms-ai design system).
+   Used by index.html and dashboard.html: top bar, buttons, hero,
+   textures (dot-grid, grain, corner marks), footer. */
+
+/* ---------- top bar ---------- */
+
+.dash-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--foreground);
+}
+.dash-brand .brand-mark { width: 28px; height: 28px; font-size: 0.85rem; }
+.brand-name { font-weight: 650; letter-spacing: -0.02em; font-size: 1.02rem; }
+.brand-crumb { color: var(--muted-foreground); font-size: 0.92rem; }
+
+.dash-actions { display: flex; align-items: center; gap: 0.5rem; }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn:hover { background: var(--card-2); }
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-sm);
+}
+.btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted-foreground); }
+.btn.ghost:hover { color: var(--foreground); background: var(--card-2); }
+
+.btn.danger-ghost { border-color: var(--input); color: var(--muted-foreground); background: transparent; }
+.btn.danger-ghost:hover {
+  color: var(--destructive);
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.04);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  text-align: left;
+  padding: 2.4rem 0 2rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero .kicker { margin-bottom: 0.7rem; }
+
+.hero h1 {
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+  font-weight: 680;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+.accent-dot { color: var(--primary); }
+
+.hero .tagline {
+  margin-top: 0.7rem;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+  max-width: 46rem;
+}
+
+.lock-note {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--success);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  background: rgba(22, 163, 74, 0.05);
+  border-radius: var(--radius);
+  padding: 0.22rem 0.55rem;
+  vertical-align: 2px;
+}
+
+/* dot-grid backdrop — dots fade in toward the right, halftone-style */
+.hero.dot-grid { position: relative; }
+.hero.dot-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--input) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 0 45%, #000 85%);
+  mask-image: linear-gradient(100deg, transparent 0 45%, #000 85%);
+  pointer-events: none;
+}
+
+/* ---------- textures ---------- */
+
+/* corner tick marks (use sparingly on featured surfaces) */
+.corner-marks { position: relative; }
+.corner-marks::before,
+.corner-marks::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--primary);
+  pointer-events: none;
+}
+.corner-marks::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.corner-marks::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+/* subtle grain on light surfaces: a translucent white layer composites over
+   the multiplied grain so the texture stays a whisper, not a wash */
+.grain {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
+    url("assets/local-grain.png");
+  background-size: cover, cover;
+  background-position: center, center;
+  background-blend-mode: normal, multiply;
+}
+
+/* ---------- footer ---------- */
+
+.dash-footer {
+  margin: 2.2rem 0 0; /* kill style.css's `margin: 0 auto` so the bar spans full width */
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: none;
+  flex-direction: row;
+  text-align: left;
+}
+.dash-footer .powered-by { font-size: 0.8rem; }
+.dash-footer .powered-by b { font-weight: 600; color: var(--foreground); }
+.footer-tech {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 560px) {
+  .dash-top { flex-direction: column; align-items: flex-start; }
+  .dash-footer { flex-direction: column; align-items: flex-start; }
+}

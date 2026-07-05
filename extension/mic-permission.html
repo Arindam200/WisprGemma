@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WisprGemma — Microphone access</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .perm-card { max-width: 26rem; padding: 2rem; text-align: center; }
+    .perm-card h1 { font-size: 1.2rem; margin: 0 0 0.6rem; }
+    .perm-card p { color: var(--muted-foreground, #666); font-size: 0.92rem; line-height: 1.5; }
+    #status.ok { color: #15803d; font-weight: 600; }
+    #status.err { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="perm-card">
+    <h1>🎙️ Allow microphone access</h1>
+    <p>Chrome will ask for microphone permission for WisprGemma. Click <b>Allow</b> in the prompt — you only need to do this once. Your audio never leaves this device.</p>
+    <p id="status">Waiting for the permission prompt…</p>
+  </div>
+  <script src="mic-permission.js"></script>
+</body>
+</html>

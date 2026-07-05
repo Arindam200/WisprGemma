@@ -1,0 +1,52 @@
+/* Dictation (home) page styles. Shared chrome lives in editorial.css. */
+
+main.home { max-width: 1040px; gap: 0; }
+
+/* the app column sits centered under the full-width hero */
+main.home #loader,
+main.home #app {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+main.home #app { margin-top: 0; }
+
+.hero-badge-row { margin-top: 1rem; }
+
+/* ---------- loader card ---------- */
+
+#loader {
+  padding: 2.6rem 2rem;
+  background-image: radial-gradient(var(--rule) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+#load-btn { font-size: 0.95rem; padding: 0.8rem 1.5rem; }
+
+/* ---------- recorder card ---------- */
+
+.controls { border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }
+
+.record { font-size: 1.05rem; padding: 1.25rem; }
+.record kbd { margin-left: 0.35rem; }
+
+#record-hint { font-size: 0.78rem; }
+
+.output-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: -0.5rem;
+}
+
+.stats { font-size: 0.78rem; }
+
+.app-links {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+}
+
+@media (max-width: 560px) {
+  #loader { padding: 2rem 1.25rem; }
+}

@@ -5,17 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WisprGemma</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="editorial.css" />
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
   <main class="panel-main">
-    <header>
-      <h1>WisprGemma</h1>
-      <span id="privacy-badge" class="badge">🔒 100% on-device</span>
+
+    <header class="dash-top panel-top">
+      <span class="dash-brand">
+        <span class="brand-mark">🎙️</span>
+        <span class="brand-name">WisprGemma</span>
+      </span>
+      <span id="privacy-badge" class="lock-note panel-lock">🔒 On-device</span>
     </header>
 
-    <section id="loader">
-      <button id="load-btn">Load model (~3.5 GB, one-time)</button>
+    <section id="loader" class="corner-marks">
+      <button id="load-btn" class="btn primary">Load model (~3.5 GB, one-time)</button>
       <div id="progress" hidden>
         <div id="progress-bar"><div id="progress-fill"></div></div>
         <p id="progress-text">Preparing…</p>
@@ -25,7 +30,8 @@
 
     <section id="app" hidden>
       <div class="controls">
-        <select id="mode" title="Output style">
+        <label class="card-label" for="mode">Output style</label>
+        <select id="mode">
           <option value="clean" selected>Clean dictation</option>
           <option value="verbatim">Verbatim transcript</option>
           <option value="email">Polished email tone</option>
@@ -41,8 +47,8 @@
            data-placeholder="Your polished text appears here…"></div>
 
       <div class="actions">
-        <button id="insert-btn">Insert into page</button>
-        <button id="copy-btn">Copy</button>
+        <button id="insert-btn" class="btn primary">Insert into page</button>
+        <button id="copy-btn" class="btn">Copy</button>
       </div>
       <p id="insert-status" class="hint"></p>
 
@@ -52,12 +58,12 @@
         <span>audio <b id="stat-audio">–</b></span>
       </div>
 
-      <a class="dash-link" href="dashboard.html" target="_blank">📊 Stats dashboard →</a>
+      <a class="btn ghost dash-btn" href="dashboard.html" target="_blank">📊 Stats dashboard →</a>
 
       <div class="history">
         <div class="history-head">
           <span class="card-label">History</span>
-          <button id="clear-history">Clear</button>
+          <button id="clear-history" class="btn danger-ghost">Clear</button>
         </div>
         <p id="history-empty" class="hint">Dictations appear here so you can copy them again.</p>
         <ul id="history-list"></ul>
@@ -66,11 +72,12 @@
 
     <footer class="panel-footer">
       <a class="powered-by" href="https://ai.google.dev/gemma" target="_blank" rel="noopener noreferrer">
-        <img src="assets/gemma-color.png" alt="" width="18" height="18" />
-        <span>Powered by Gemma 4</span>
+        <img src="assets/gemma-color.png" alt="Gemma logo" width="18" height="18" />
+        <span>Powered by <b>Gemma 4</b></span>
       </a>
-      <p>Gemma 4 E2B on WebGPU via Transformers.js.</p>
+      <p class="footer-tech">Gemma 4 E2B · WebGPU · Transformers.js</p>
     </footer>
+
   </main>
   <script type="module" src="panel.js"></script>
 </body>

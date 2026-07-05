@@ -28,6 +28,12 @@ const els = {
 const MAX_SECONDS = 30;
 const HISTORY_KEY = "wisprgemma-history-v1";
 const worker = new Worker("worker.js", { type: "module" });
+// Surface worker boot failures (e.g. a blocked import) that would otherwise
+// leave the UI stuck on "Preparing…" with no error anywhere.
+worker.onerror = (e) => {
+  const where = e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "";
+  els.progressText.textContent = `⚠️ Worker failed: ${e.message ?? "unknown error"}${where}`;
+};
 let streamingToTab = false;
 // Tab the dictation targets, captured when recording starts so streamed
 // tokens keep landing in the right tab even if the user switches tabs.
@@ -162,6 +168,7 @@ worker.onmessage = ({ data }) => {
       const p = data.data;
       if (p.status === "progress" && p.total) {
         fileProgress.set(p.file, { loaded: p.loaded, total: p.total });
+        els.progressFill.classList.remove("indeterminate");
         let loaded = 0, total = 0;
         for (const f of fileProgress.values()) {
           loaded += f.loaded;
@@ -169,6 +176,19 @@ worker.onmessage = ({ data }) => {
         }
         els.progressFill.style.width = `${total ? ((loaded / total) * 100).toFixed(1) : 0}%`;
         els.progressText.textContent = `Downloading… ${(loaded / 1e9).toFixed(2)} / ${(total / 1e9).toFixed(2)} GB`;
+      } else if (p.status === "done" && fileProgress.has(p.file)) {
+        // A file finished downloading. Once every tracked file is complete,
+        // the long, silent phase begins: building the ONNX session and
+        // uploading weights to the GPU. Tell the user instead of appearing
+        // frozen at "Downloading… 3.40 / 3.40 GB".
+        fileProgress.get(p.file).loaded = fileProgress.get(p.file).total;
+        const allDone = [...fileProgress.values()].every((f) => f.loaded >= f.total);
+        if (allDone) {
+          els.progressFill.style.width = "100%";
+          els.progressFill.classList.add("indeterminate");
+          els.progressText.textContent =
+            "Download complete. Loading model onto the GPU… this can take a few minutes the first time.";
+        }
       }
       break;
     }
@@ -280,7 +300,16 @@ async function startRecording(tabId = null) {
     els.recordBtn.textContent = "🔴 Listening…";
     recordTimer = setTimeout(() => recording && stopRecording(), MAX_SECONDS * 1000);
   } catch (err) {
-    els.output.textContent = `⚠️ Microphone error: ${err.message}`;
+    if (err.name === "NotAllowedError") {
+      // Chrome can't show the mic prompt inside the side panel ("Permission
+      // dismissed"). Grant it once from a regular tab instead; the grant
+      // covers the whole extension origin, including this panel.
+      els.output.textContent =
+        "Microphone permission needed. A tab just opened — click Allow there, then hold to talk again.";
+      chrome.tabs.create({ url: chrome.runtime.getURL("mic-permission.html") });
+    } else {
+      els.output.textContent = `⚠️ Microphone error: ${err.message}`;
+    }
   }
 }
 

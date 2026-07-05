@@ -18,6 +18,8 @@ npx serve . -l 3000
 
 Open http://localhost:3000 in Chrome or Edge 121+ (WebGPU required).
 
+First load downloads ~3.5 GB of model weights, then spends a few minutes uploading them to the GPU. The progress UI shows both phases.
+
 ## Optional: local model server
 
 To avoid re-downloading weights for every origin:

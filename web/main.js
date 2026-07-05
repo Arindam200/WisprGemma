@@ -26,6 +26,12 @@ const RECORD_MAX_SECONDS = 300; // safety cap on a single hold
 const SAMPLE_RATE = 16000;
 
 const worker = new Worker("worker.js", { type: "module" });
+// Surface worker boot failures (e.g. a blocked import) that would otherwise
+// leave the UI stuck on "Preparing…" with no error anywhere.
+worker.onerror = (e) => {
+  const where = e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "";
+  els.progressText.textContent = `⚠️ Worker failed: ${e.message ?? "unknown error"}${where}`;
+};
 
 let mediaRecorder = null;
 let chunks = [];
@@ -83,6 +89,7 @@ worker.onmessage = ({ data }) => {
       const p = data.data;
       if (p.status === "progress" && p.total) {
         fileProgress.set(p.file, { loaded: p.loaded, total: p.total });
+        els.progressFill.classList.remove("indeterminate");
         let loaded = 0,
           total = 0;
         for (const f of fileProgress.values()) {
@@ -92,8 +99,19 @@ worker.onmessage = ({ data }) => {
         const pct = total ? (loaded / total) * 100 : 0;
         els.progressFill.style.width = `${pct.toFixed(1)}%`;
         els.progressText.textContent = `Downloading model… ${(loaded / 1e9).toFixed(2)} / ${(total / 1e9).toFixed(2)} GB (cached after first load)`;
-      } else if (p.status === "ready" || p.status === "done") {
-        els.progressText.textContent = "Compiling shaders / warming up…";
+      } else if (p.status === "done" && fileProgress.has(p.file)) {
+        // A file finished downloading. Once every tracked file is complete,
+        // the long, silent phase begins: building the ONNX session and
+        // uploading weights to the GPU. Tell the user instead of appearing
+        // frozen at the final "Downloading…" figure.
+        fileProgress.get(p.file).loaded = fileProgress.get(p.file).total;
+        const allDone = [...fileProgress.values()].every((f) => f.loaded >= f.total);
+        if (allDone) {
+          els.progressFill.style.width = "100%";
+          els.progressFill.classList.add("indeterminate");
+          els.progressText.textContent =
+            "Download complete. Loading model onto the GPU… this can take a few minutes the first time.";
+        }
       }
       break;
     }
