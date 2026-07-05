@@ -6,94 +6,31 @@ Local-first multilingual dictation powered by **Gemma 4 E2B**. Speak in any lang
 
 
 
-This monorepo contains two deliverables:
+WisprGemma is a WisprFlow-style dictation tool that runs entirely in the browser on WebGPU. I built it for anyone who wants fast voice-to-text without sending audio to a cloud API: no subscription, no API key, works offline after a one-time model download (~3.5 GB, q4f16).
 
-| Package | Path | What it is |
-|---------|------|------------|
-| Web app | [`web/`](web/) | Standalone dictation page + stats dashboard |
-| Chrome extension | [`extension/`](extension/) | Side panel that inserts text into any focused input on a page |
+One Gemma 4 model handles the full pipeline in a single pass: speech recognition, cleanup, and rewriting. No Whisper, no backend.
 
-## What we built
+## Output modes
 
-WisprGemma is a WisprFlow-style dictation tool that runs entirely in the browser on WebGPU. One Gemma 4 model handles the full pipeline in a single pass:
+Pick a mode before you speak. Each one is a different prompt to the same model, not a separate pipeline.
 
-1. **Speech recognition** from raw audio
-2. **Cleanup** (fillers, false starts, punctuation)
-3. **Rewriting** based on the selected output style
+| Mode | What you get | Best for |
+|------|--------------|----------|
+| **Clean dictation** | Transcript with fillers removed, false starts cut, punctuation fixed. Spoken commands like "new paragraph" or "make that a bullet list" are applied, not transcribed. | Notes, docs, general dictation |
+| **Verbatim** | Exact transcript as spoken, no cleanup | Capturing raw speech, interviews |
+| **Polished email** | Rewritten as a concise, professional email body with grammar and punctuation fixed | Drafting emails by voice |
+| **Any language → English** | Transcribes speech in any language and outputs polished English | Multilingual input, translation-style dictation |
 
-No Whisper, no cloud API, no API key. After a one-time model download (~3.5 GB, q4f16), both the web app and extension work offline.
+## Key features
 
-### Web app (`web/`)
-
-- Hold-to-talk dictation (button or Space), with streaming output
-- Output styles: clean dictation, verbatim, polished email, any language to English
-- Latency stats per utterance (time to first token, total, audio length)
-- Stats dashboard: words dictated, WPM, estimated time saved vs typing, streak, 14-day chart
-- All stats stored in `localStorage` on the device
-- Editorial UI with on-device privacy messaging throughout
-
-### Chrome extension (`extension/`)
-
-- Side panel with the same dictation flow as the web app
-- Inserts text into the last focused input, textarea, or contenteditable on the active page
-- Push-to-talk on any page: hold **Option** while a text field is focused
-- Dictation history in the panel for quick copy
-- Separate stats dashboard scoped to the extension origin
-- Microphone permission helper tab (`mic-permission.html`) — Chrome cannot show the mic prompt inside the side panel, so the extension opens a one-time permission page when needed
-
-## How we built it
-
-Both packages share the same architecture pattern: vanilla HTML/CSS/JS with no build step, a module **Web Worker** for model inference, and the browser **MediaRecorder** API for microphone capture.
-
-```
-Mic (MediaRecorder)
-  → decode to 16 kHz mono Float32
-  → worker.js (Transformers.js + Gemma 4 E2B on WebGPU)
-  → streamed tokens back to UI
-  → display / insert into page / log stats
-```
-
-### Model loading
-
-- Model ID: [`onnx-community/gemma-4-E2B-it-ONNX`](https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX)
-- Quantization: `q4f16`
-- Execution: WebGPU via Transformers.js
-- Weights are fetched from Hugging Face Hub on first load, then cached by the browser
-- The UI distinguishes **download progress** from the longer **GPU upload / session build** phase so the app does not look frozen at "3.40 / 3.40 GB"
-- Optional: run `npm run download-model` to serve weights from disk at `http://localhost:8975` (faster for development, shared by web + extension)
-
-### Web app specifics
-
-- `main.js`: UI, mic capture, segment queue for clips longer than 30s (Gemma 4 audio limit)
-- `worker.js`: loads vendored Transformers.js from `vendor/transformers.min.js`, runs `Gemma4ForConditionalGeneration`
-- `stats.js` + `dashboard.*`: local analytics computed entirely on-device
-- `editorial.css` + `home.css`: shared editorial design system (hero layout, dot grid, texture overlays)
-
-### Extension specifics
-
-- `panel.js` + `panel.html`: side panel UI and mic flow
-- `worker.js`: same inference logic with extra MV3 CSP workarounds:
-  - Vendored `vendor/transformers.min.js` (Manifest V3 blocks remote scripts in extension pages)
-  - Vendored ONNX Runtime WASM (`ort-wasm-simd-threaded.asyncify.*`) instead of CDN/blob URLs
-  - A minimal `chrome.runtime.id` shim so Transformers.js loads WASM from `chrome-extension://` paths
-- `mic-permission.html/js`: one-time microphone grant in a regular extension tab
-- `content.js`: tracks focused editable elements, handles Option push-to-talk, inserts text with undo-friendly APIs
-- `background.js`: opens the side panel from the toolbar icon
-- Model weights are still fetched from Hugging Face at runtime (data, not code)
-
-## Tech stack
-
-| Layer | Technology |
-|-------|------------|
-| Model | Gemma 4 E2B instruction-tuned (`gemma-4-E2B-it`) |
-| Inference | [Transformers.js](https://huggingface.co/docs/transformers.js) 4.2.0 |
-| Runtime | WebGPU (Chrome / Edge 121+) |
-| Model format | ONNX, q4f16 quantized |
-| Web app | HTML, CSS, vanilla JS, ES module Web Worker |
-| Extension | Chrome Manifest V3, Side Panel API, content scripts |
-| Audio | MediaRecorder → Web Audio API decode → 16 kHz mono Float32 |
-| Storage | `localStorage` (stats, dictation history in extension) |
-| Serving | Any static file server (`npx serve`) |
+| | Web app ([`web/`](web/)) | Chrome extension ([`extension/`](extension/)) |
+|---|--------------------------|------------------------------------------------|
+| **Dictation** | Hold button or **Space**, streaming output | Side panel + **Option** push-to-talk on any page |
+| **Insert text** | Copy from output area | Inserts into focused input, textarea, or contenteditable |
+| **Privacy** | 100% on-device inference | Same: audio never leaves your machine |
+| **Stats** | Words dictated, WPM, time saved, streak, 14-day chart | Separate dashboard for extension usage |
+| **Offline** | Works after first model load | Same (separate cache per origin) |
+| **Extras** | Editorial UI, per-utterance latency stats | Dictation history, mic permission helper tab |
 
 ## Quick start
 
@@ -121,37 +58,48 @@ Requires Chrome or Edge 121+ with WebGPU enabled. First load downloads ~3.5 GB, 
 npm run download-model
 ```
 
-Downloads weights into `web/models/` and serves them on port 8975. Leave it running while developing.
+Downloads weights into `web/models/` and serves them on port 8975. Leave it running while developing. Both the web app and extension auto-detect it.
+
+## How it works
+
+```
+Mic (MediaRecorder)
+  → decode to 16 kHz mono Float32
+  → worker.js (Transformers.js + Gemma 4 E2B on WebGPU)
+  → streamed tokens back to UI
+  → display / insert into page / log stats
+```
+
+Vanilla HTML/CSS/JS, no build step. A module **Web Worker** runs inference so the UI stays responsive while a 3.5 GB model loads.
+
+**Model:** [`onnx-community/gemma-4-E2B-it-ONNX`](https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX), q4f16, WebGPU via Transformers.js 4.2.0. Weights download from Hugging Face Hub on first load, then cache in the browser. Clips longer than 30 seconds are split into segments automatically (Gemma 4 audio limit).
+
+The extension adds MV3-specific workarounds: vendored Transformers.js and ONNX Runtime WASM, plus a one-time mic permission page (Chrome cannot prompt inside the side panel).
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| Model | Gemma 4 E2B instruction-tuned (`gemma-4-E2B-it`) |
+| Inference | [Transformers.js](https://huggingface.co/docs/transformers.js) 4.2.0 |
+| Runtime | WebGPU (Chrome / Edge 121+) |
+| Model format | ONNX, q4f16 quantized |
+| Web app | HTML, CSS, vanilla JS, ES module Web Worker |
+| Extension | Chrome Manifest V3, Side Panel API, content scripts |
+| Audio | MediaRecorder → Web Audio API decode → 16 kHz mono Float32 |
+| Storage | `localStorage` (stats, dictation history in extension) |
 
 ## Repository layout
 
 ```
 wisprgemma/
-├── README.md              Project overview (this file)
-├── package.json           Convenience scripts
-├── serve.json             Static server config (trailing slashes)
 ├── web/                   Web app + stats dashboard
-│   ├── index.html         Dictation UI
-│   ├── main.js            Mic capture + UI logic
-│   ├── worker.js          Gemma 4 inference worker
-│   ├── stats.js           localStorage stats helpers
-│   ├── dashboard.html     Stats dashboard
-│   ├── editorial.css      Shared editorial design system
-│   ├── home.css           Home page layout
-│   ├── download-model.sh  Optional local weight server
-│   ├── assets/            Static assets (Gemma logo, textures)
-│   └── vendor/            Vendored Transformers.js bundle
-└── extension/             Chrome MV3 extension
-    ├── manifest.json
-    ├── panel.html/js      Side panel UI
-    ├── mic-permission.*   One-time microphone permission page
-    ├── worker.js          Inference worker (CSP-safe Transformers.js + ORT WASM)
-    ├── content.js         Page text insertion + push-to-talk
-    ├── background.js      Toolbar → side panel
-    ├── dashboard.html     Extension stats dashboard
-    ├── editorial.css      Shared editorial design system
-    └── vendor/            Vendored Transformers.js + ONNX Runtime WASM
+├── extension/             Chrome MV3 extension
+├── package.json           Convenience scripts
+└── serve.json             Static server config
 ```
+
+See [`web/README.md`](web/README.md) and [`extension/README.md`](extension/README.md) for package-specific notes.
 
 ## Privacy
 
